@@ -1,409 +1,391 @@
-import os
-import json
-import re
 import streamlit as st
+import json
+import os
+import re
 from openai import OpenAI
 
-st.set_page_config(page_title="Cadas Resonance Studio", page_icon="💀", layout="wide")
+# ============================================================
+# CADAS RESONANCE STUDIO
+# ============================================================
 
-API_BASE = "https://clariohub.id/v1"
-MODE_LOCAL = "🇮🇩 Lokal Indonesia"
-MODE_GLOBAL = "🌎 Global Skeleton"
+st.set_page_config(
+    page_title="Cadas Resonance Studio",
+    page_icon="ðŸ’€",
+    layout="wide"
+)
 
-MODELS = {
-    "Gemini 3.7 Flash": "clario/gemini-3.7-flash",
-    "GPT 5.6 Sol": "clario/gpt-5.6-sol",
-    "DeepSeek V4 Pro": "clario/deepseek-v4-pro",
-    "DeepSeek V4 Flash": "clario/deepseek-v4-flash",
-    "GLM 5.3 Flash": "clario/glm-5.3-flash",
-}
+API_BASE_URL = "https://clariohub.id/v1"
+
+DEFAULT_TITLE_MODEL = "clario/gemini-3.7-flash"
+DEFAULT_STORY_MODEL = "clario/deepseek-v4-pro"
+DEFAULT_FLOW_MODEL = "clario/deepseek-v4-pro"
+
+MODEL_OPTIONS = [
+    "clario/gemini-3.7-flash",
+    "clario/deepseek-v4-pro",
+    "clario/deepseek-v4-flash",
+    "clario/gpt-5.6-sol",
+    "clario/glm-5.3-flash",
+]
 
 GLOBAL_THEMES = {
-    "💀 Skeleton Everyday Life": ["Skeleton at Work", "Skeleton at School", "Skeleton Roommate", "Skeleton Grocery Shopping", "Skeleton Family Problems"],
-    "😂 Absurd Comedy": ["Unexpected Twist", "Awkward Moments", "Dumb Decisions", "Public Embarrassment", "Overreaction Comedy"],
-    "👻 Horror Comedy": ["Haunted House", "Ghost Pranks", "Monster Problems", "Scared Skeleton", "Paranormal Roommate"],
-    "🎮 Gaming Comedy": ["Rage Quit", "Noob Moments", "Gaming Addiction", "Online Game Disaster", "Toxic Teammates"],
-    "❤️ Relationship Comedy": ["Awkward Dates", "Jealous Skeleton", "Breakup Problems", "Dating App Disaster", "Relationship Misunderstanding"],
-    "💪 Gym & Fitness": ["Skeleton at the Gym", "Protein Obsession", "Gym Fails", "Fitness Influencer", "Personal Trainer Disaster"],
-    "💰 Money & Work": ["Broke Skeleton", "Office Problems", "Payday Disaster", "Bad Boss", "Online Shopping Addiction"],
-    "🍔 Food Comedy": ["Midnight Snacks", "Skeleton Cooking", "Food Addiction", "Restaurant Disaster", "Fast Food Disaster"],
-    "🧪 Science & Sci-Fi": ["Alien Encounter", "Mad Experiment", "Time Travel Disaster", "Robot Problems", "Parallel Universe"],
-    "🏃 Survival Comedy": ["Zombie Apocalypse", "Bad Survival Skills", "Monster Chase", "Last Person on Earth", "Disaster Preparation"],
+    "Skeleton Everyday Life": ["Morning Routine", "Going to Work", "Shopping", "Cooking", "Cleaning", "Sleeping"],
+    "Absurd Comedy": ["Unexpected Disaster", "Ridiculous Argument", "Awkward Situation", "Unexpected Twist"],
+    "Horror Comedy": ["Haunted House", "Ghost Encounter", "Creepy Neighbor", "Midnight Mystery"],
+    "Gaming Comedy": ["Rage Quit", "Noob Moment", "Boss Fight", "Gaming Addiction"],
+    "Relationship Comedy": ["Dating Problems", "Jealousy", "Breakup", "Awkward Date"],
+    "Gym & Fitness": ["First Day at Gym", "Leg Day", "Protein Addiction", "Fitness Fail"],
+    "Money & Work": ["Broke Again", "Salary Day", "Office Problems", "Unexpected Expenses"],
+    "Food Comedy": ["Cooking Disaster", "Food Addiction", "Restaurant Problems", "Late Night Cravings"],
+    "Science & Sci-Fi": ["Time Travel", "Alien Encounter", "Mad Experiment", "Robot Problems"],
+    "Survival Comedy": ["Zombie Apocalypse", "Lost in the Woods", "Surviving the Night", "Disaster Survival"],
 }
+
 LOCAL_THEMES = {
-    "👻 Horor Komedi": ["Pocong Salah Alamat", "Kuntilanak Lapar", "Genderuwo Cari Kerja", "Hantu Kos", "Setan Takut Manusia"],
-    "🍜 Kehidupan Sehari-hari": ["Hantu Beli Bakso", "Pocong Numpang Wi-Fi", "Hantu Pinjam Charger", "Setan Pesan Makanan Online", "Hantu Kehabisan Uang"],
-    "😂 Komedi Tongkrongan": ["Teman Sok Berani", "Prank Gagal", "Utang Warung", "Ronda Tengah Malam", "Salah Paham Kocak"],
-    "🏚️ Cerita Anak Kos": ["Misteri Kamar Kos", "Hantu Minta Bayar Listrik", "Mie Instan Tengah Malam", "Pintu Kos Misterius", "Penunggu Kamar Mandi"],
+    "Horor Komedi": ["Pocong Salah Alamat", "Kuntilanak Kesepian", "Genderuwo Numpang WiFi", "Tuyul Kena Tilang", "Hantu Kos", "Misteri Pos Ronda"],
+    "Kehidupan Sehari-hari": ["Bangun Kesiangan", "Dompet Kosong", "Antre Makanan", "Motor Mogok", "Utang Teman"],
+    "Komedi Tongkrongan": ["Teman Sok Kaya", "Debat Tidak Penting", "Mabar Sampai Pagi", "Teman Paling Pelit"],
+    "Cerita Anak Kos": ["Akhir Bulan", "Mi Instan Terakhir", "Tagihan Listrik", "Iuran Kos", "Dikejar Pemilik Kos"],
 }
-CTA_OPTIONS = ["🧠 Smart CTA Otomatis", "😂 CTA Komedi", "⏳ CTA Cliffhanger", "🏆 CTA Tantangan", "🚫 Tanpa CTA"]
-VISUAL_STYLES = ["Clean cinematic 3D animation", "Cinematic 3D horror comedy", "Stylized 3D cartoon comedy", "High-detail cinematic 3D", "Absurd cinematic 3D animation"]
+CTA_OPTIONS = ["Smart Auto", "Comedy CTA", "Cliffhanger CTA", "Challenge CTA", "No CTA"]
+DURATION_OPTIONS = [5, 8, 10, 15, 20, 30, 40, 50, 60]
+
+DEFAULT_STATE = {
+    "ideas": [], "selected_title": "", "story": None,
+    "flow_prompts": [], "broll_prompts": [],
+    "generated_title": "", "generated_story_title": "",
+    "generated_flow_title": "", "generated_duration": None,
+}
+for key, value in DEFAULT_STATE.items():
+    if key not in st.session_state:
+        st.session_state[key] = value
+
 
 def get_api_key():
     try:
-        value = st.secrets.get("CLARIOHUB_API_KEY", "")
-        if value:
-            return str(value).strip()
+        key = st.secrets.get("CLARIOHUB_API_KEY", "")
+        if key:
+            return key
     except Exception:
         pass
-    return os.getenv("CLARIOHUB_API_KEY", "").strip()
+    return os.getenv("CLARIOHUB_API_KEY", "")
 
-def call_ai(api_key, model, prompt, max_tokens=3000):
-    if not api_key:
-        raise RuntimeError("API Key belum tersedia. Tambahkan CLARIOHUB_API_KEY di Streamlit Cloud Secrets.")
-    client = OpenAI(api_key=api_key, base_url=API_BASE, timeout=120, max_retries=1)
-    response = client.chat.completions.create(
-        model=model,
-        messages=[
-            {"role": "system", "content": "You are an expert short-form comedy writer and cinematic 3D director. Follow instructions. If JSON is requested, return one valid JSON object without Markdown fences."},
-            {"role": "user", "content": prompt},
-        ],
-        temperature=0.7,
-        max_tokens=max_tokens,
-    )
-    content = response.choices[0].message.content
-    if not content or not content.strip():
-        raise RuntimeError("Model mengembalikan respons kosong.")
-    return content.strip()
 
-def parse_json_response(raw):
-    """Parse JSON robustly, including responses wrapped in Markdown fences."""
-    raw = raw.strip().lstrip("\ufeff")
-    raw = re.sub(r"^```(?:json)?\s*", "", raw, flags=re.IGNORECASE)
-    raw = re.sub(r"\s*```$", "", raw)
-    try:
-        parsed = json.loads(raw)
-        if isinstance(parsed, dict):
-            return parsed
-    except json.JSONDecodeError:
-        pass
-    decoder = json.JSONDecoder()
-    for pos, char in enumerate(raw):
-        if char == "{":
-            try:
-                parsed, _ = decoder.raw_decode(raw[pos:])
-                if isinstance(parsed, dict):
-                    return parsed
-            except json.JSONDecodeError:
-                continue
-    # Ask model to repair malformed/truncated JSON once.
-    raise ValueError("JSON_INVALID:" + raw[:9000])
-
-def ai_json(api_key, model, prompt, max_tokens=3000):
-    raw = call_ai(api_key, model, prompt, max_tokens)
-    try:
-        return parse_json_response(raw)
-    except ValueError as err:
-        if not str(err).startswith("JSON_INVALID:"):
-            raise
-        bad_response = str(err).split("JSON_INVALID:", 1)[1]
-        repair_prompt = f"""
-Convert the following model response into one valid JSON object.
-Preserve all useful content. Do not invent missing facts. If content is incomplete,
-complete it conservatively. Return JSON only, without Markdown fences.
-
-RESPONSE TO REPAIR:
-{bad_response}
-"""
-        repaired = call_ai(api_key, model, repair_prompt, max_tokens)
-        return parse_json_response(repaired)
-
-def get_profile(mode):
-    if mode == MODE_LOCAL:
-        return {
-            "language": "Bahasa Indonesia",
-            "characters": "Pocong, kuntilanak, genderuwo, tuyul, anak kos, pedagang bakso, atau warga Indonesia.",
-            "setting": "Gang kampung, warung bakso, kamar kos, kontrakan, pos ronda, atau pasar malam.",
-            "dialogue": "Bahasa Indonesia natural dan gaul. Dialog singkat, jelas, lucu, cocok untuk penonton Indonesia.",
-            "continuity": "Pertahankan desain karakter, pakaian, warna, proporsi, dan properti pada setiap shot.",
-        }
-    return {
-        "language": "Natural conversational English",
-        "characters": "A recurring expressive 3D skeleton with consistent skull, teeth, eye sockets, bone proportions, accessories, and color palette.",
-        "setting": "Choose a setting that specifically matches the selected theme and subtheme.",
-        "dialogue": "Natural conversational English, concise dialogue, physical comedy, and memorable punchlines.",
-        "continuity": "Maintain the same skeleton design, skull shape, teeth, bone proportions, accessories, and materials across shots.",
-    }
-
-def cta_instruction(choice):
-    options = {
-        "🚫 Tanpa CTA": "No CTA. End on the strongest punchline.",
-        "😂 CTA Komedi": "Integrate a short funny CTA into the joke only if natural. Never weaken the punchline.",
-        "⏳ CTA Cliffhanger": "Use a funny unresolved ending; add a brief follow request only if a continuation makes sense.",
-        "🏆 CTA Tantangan": "Add one short playful challenge related to the story.",
-        "🧠 Smart CTA Otomatis": "Use an organic CTA only if it strengthens the punchline. Never add a generic CTA.",
-    }
-    return options.get(choice, options["🧠 Smart CTA Otomatis"])
-
-def shot_schedule(duration):
-    duration = int(duration)
-    proportions = [0.15, 0.20, 0.18, 0.22, 0.25]
-    lengths = [max(1, round(duration * p)) for p in proportions]
-    while sum(lengths) > duration:
-        valid = [i for i, n in enumerate(lengths) if n > 1]
-        if not valid:
-            break
-        lengths[max(valid, key=lambda i: lengths[i])] -= 1
-    while sum(lengths) < duration:
-        lengths[-1] += 1
-    labels = ["HOOK / CLOSE-UP", "REACTION SHOT", "INTEGRATED B-ROLL", "CONFLICT ESCALATION", "PUNCHLINE / FINAL REACTION"]
-    shots, cursor = [], 0
-    for label, length in zip(labels, lengths):
-        shots.append({"start": cursor, "end": cursor + length, "label": label})
-        cursor += length
-    return shots
-
-def format_schedule(shots):
-    return "\n".join(f"[{s['start']:02d}s-{s['end']:02d}s] {s['label']}" for s in shots)
-
-def generate_story(api_key, model, mode, theme, subtheme, premise, duration, cta_choice, visual_style):
-    profile = get_profile(mode)
-    prompt = f"""
-Create one original short-form comedy story.
-MODE: {mode}
-LANGUAGE: {profile['language']}
-THEME: {theme}
-SUBTHEME: {subtheme}
-DURATION: {duration} seconds
-VISUAL STYLE: {visual_style}
-USER IDEA: {premise.strip() or "Invent an original funny situation based on the selected subtheme."}
-CHARACTERS: {profile['characters']}
-SETTING: {profile['setting']}
-DIALOGUE STYLE: {profile['dialogue']}
-CONTINUITY: {profile['continuity']}
-CTA: {cta_instruction(cta_choice)}
-TIMELINE:
-{format_schedule(shot_schedule(duration))}
-
-RULES:
-1. Strong visual hook in the first 0-2 seconds.
-2. Clear conflict, escalating curiosity, specific punchline.
-3. Dialogue must fit the target duration.
-4. Keep characters and setting consistent.
-5. Apply DILIHAT -> BERTAHAN -> KEMBALI: instant hook, escalation, memorable payoff,
-   and a natural loop only when appropriate.
-6. For comedy CTA, integrate the joke into the punchline, not a generic request.
-7. Return JSON only. Use short strings and a maximum of 8 dialogue lines.
-8. Ensure all JSON strings are properly escaped.
-
-JSON schema:
-{{
-  "language": "...",
-  "theme": "...",
-  "subtheme": "...",
-  "hook": "...",
-  "story": "...",
-  "characters": "...",
-  "setting": "...",
-  "dialogue": [{{"time":"00:00-00:02","speaker":"...","line":"..."}}],
-  "punchline": "...",
-  "ending": "...",
-  "cta_note": "...",
-  "hashtags": ["#Shorts", "#Comedy"]
-}}
-"""
-    data = ai_json(api_key, model, prompt, 2500)
-    defaults = {
-        "language": profile["language"], "theme": theme, "subtheme": subtheme,
-        "hook": "", "story": "", "characters": profile["characters"],
-        "setting": profile["setting"], "dialogue": [], "punchline": "",
-        "ending": "", "cta_note": "", "hashtags": ["#Shorts", "#Comedy"]
-    }
-    for key, value in defaults.items():
-        data.setdefault(key, value)
-    return data
-
-def generate_titles(api_key, model, story_data):
-    prompt = f"""
-Create five catchy YouTube Shorts titles.
-Language: {story_data.get('language', 'English')}
-Theme: {story_data.get('theme', '')}
-Subtheme: {story_data.get('subtheme', '')}
-Hook: {story_data.get('hook', '')}
-Story: {story_data.get('story', '')}
-Punchline: {story_data.get('punchline', '')}
-Rules: short, specific, memorable, match the story language, no misleading clickbait.
-Return valid JSON only:
-{{"titles":["Title 1","Title 2","Title 3","Title 4","Title 5"]}}
-"""
-    data = ai_json(api_key, model, prompt, 700)
-    titles = data.get("titles", [])
-    if not isinstance(titles, list) or not titles:
-        raise RuntimeError("Model tidak menghasilkan pilihan judul.")
-    return [str(title) for title in titles[:5]]
-
-def generate_flow_prompt(api_key, model, story_data, mode, duration, visual_style):
-    profile = get_profile(mode)
-    prompt = f"""
-Create a complete ready-to-copy Google Flow prompt for one coherent vertical 9:16 video.
-Target duration: {duration} seconds.
-Mode: {mode}
-Language: {profile['language']}
-Visual style: {visual_style}
-Story JSON:
-{json.dumps(story_data, ensure_ascii=False)}
-Character continuity: {profile['continuity']}
-Timeline:
-{format_schedule(shot_schedule(duration))}
-
-Include timed actions, facial expressions, camera angles and movement, cinematic lighting,
-sound effects, ambience, dialogue timestamps, transitions, consistent props and geography,
-and a clear final punchline. Integrate close-ups, reaction shots, detail inserts and cutaways
-inside the main timeline. Do not make unrelated clips or exceed the target duration.
-Return valid JSON only. Keep the prompt detailed but concise enough to avoid output truncation.
-
-JSON:
-{{
-  "flow_prompt": "Complete timed Google Flow production prompt",
-  "broll": [
-    {{
-      "timestamp": "00:02-00:03",
-      "shot": "Specific insert or reaction shot",
-      "camera": "Camera angle and movement",
-      "lighting": "Lighting description",
-      "purpose": "How this shot supports the joke"
-    }}
-  ]
-}}
-"""
-    data = ai_json(api_key, model, prompt, 3000)
-    data.setdefault("flow_prompt", "")
-    data.setdefault("broll", [])
-    return data
-
-# UI
-st.title("💀 Cadas Resonance Studio")
-st.caption("Local Indonesian horror comedy + global cinematic skeleton comedy.")
-
-with st.sidebar:
-    st.header("⚙️ Pengaturan")
-    mode = st.radio("Pilih mode", [MODE_LOCAL, MODE_GLOBAL])
-    st.divider()
-    st.subheader("🤖 Model AI")
-    title_model_name = st.selectbox("Model pembuat judul", list(MODELS.keys()), index=0)
-    story_model_name = st.selectbox("Model cerita dan dialog", list(MODELS.keys()), index=2)
-    flow_model_name = st.selectbox("Model Google Flow", list(MODELS.keys()), index=2)
-    st.caption("Semua proses memakai satu API Key ClarioHub.")
-    st.divider()
-    duration = st.select_slider("Durasi target video", options=[5, 8, 10, 15, 20, 30, 45, 60], value=30, format_func=lambda v: f"{v} detik")
-    visual_style = st.selectbox("Gaya visual", VISUAL_STYLES)
-    cta_choice = st.selectbox("Gaya CTA", CTA_OPTIONS)
-
-theme_options = GLOBAL_THEMES if mode == MODE_GLOBAL else LOCAL_THEMES
-theme = st.selectbox("🌎 Tema Global" if mode == MODE_GLOBAL else "🇮🇩 Tema Lokal", list(theme_options.keys()))
-subtheme = st.selectbox("🎭 Subtema", theme_options[theme])
-premise = st.text_area(
-    "✍️ Ide cerita (opsional)",
-    placeholder="Contoh: skeleton terlambat kerja karena tengkoraknya tertinggal..." if mode == MODE_GLOBAL else "Contoh: pocong pesan bakso tetapi lupa membawa uang...",
-    height=100,
-)
-st.info("Pilih tema dan subtema, tentukan durasi, lalu tekan Generate.")
-
-if "cadas_result" not in st.session_state:
-    st.session_state.cadas_result = None
-
-if st.button("🚀 GENERATE VIDEO CONCEPT", type="primary", use_container_width=True):
+def get_client():
     api_key = get_api_key()
     if not api_key:
-        st.error("API Key belum ditemukan. Tambahkan CLARIOHUB_API_KEY di Streamlit Cloud > Settings > Secrets.")
+        raise ValueError("API key belum ditemukan. Tambahkan CLARIOHUB_API_KEY di Streamlit Secrets.")
+    return OpenAI(api_key=api_key, base_url=API_BASE_URL)
+
+
+def call_model(model, system_prompt, user_prompt, temperature=0.8):
+    response = get_client().chat.completions.create(
+        model=model,
+        messages=[
+            {"role": "system", "content": system_prompt},
+            {"role": "user", "content": user_prompt},
+        ],
+        temperature=temperature,
+    )
+    content = response.choices[0].message.content
+    if not content:
+        raise ValueError("AI mengembalikan respons kosong.")
+    return content.strip()
+
+
+def parse_json_response(text):
+    text = re.sub(r"^```(?:json)?\s*", "", text.strip(), flags=re.IGNORECASE)
+    text = re.sub(r"\s*```$", "", text)
+    try:
+        return json.loads(text)
+    except json.JSONDecodeError:
+        start, end = text.find("{"), text.rfind("}")
+        if start >= 0 and end > start:
+            try:
+                return json.loads(text[start:end + 1])
+            except json.JSONDecodeError as exc:
+                raise ValueError(f"Respons AI bukan JSON valid: {exc}. Coba generate ulang.") from exc
+    raise ValueError("Respons AI tidak mengandung objek JSON yang valid.")
+
+
+def get_visual_style(mode):
+    if mode == "ðŸŒŽ Global Skeleton":
+        return """
+PHOTOREALISTIC LIVE-ACTION-STYLE CGI, NOT CARTOON.
+A believable full-size human skeleton with realistic bone texture,
+natural proportions, physically based rendering, real-world materials,
+cinematic but natural lighting, realistic shadows, detailed environments,
+natural movement and believable camera optics. Keep skull shape, bone
+proportions, and identifying details identical across every shot.
+No cartoon, no Pixar, no toy-like plastic, no flat illustration.
+"""
+    return """
+PHOTOREALISTIC LIVE-ACTION-STYLE SUPERNATURAL COMEDY, NOT CARTOON.
+Realistic Indonesian environments, practical-looking materials, detailed
+surfaces, cinematic natural lighting, realistic shadows, believable camera
+optics and natural movement. Supernatural characters must look tangible
+and retain exactly the same appearance across all shots.
+No cartoon, no Pixar, no toy-like plastic, no flat illustration.
+"""
+
+
+def get_language(mode):
+    return "Bahasa Indonesia yang natural dan kasual." if mode == "ðŸ‡®ðŸ‡© Indonesia Lokal" else "Natural conversational English."
+
+
+def get_theme_context(mode, theme, subtheme):
+    return f"MODE: {mode}\nTHEME: {theme}\nSUBTHEME: {subtheme}\nLANGUAGE: {get_language(mode)}\nKeep the story specific to the selected theme and subtheme."
+
+
+def generate_ideas(mode, theme, subtheme, user_idea, title_model, number_of_ideas=5):
+    system = """You are an expert short-form cinematic comedy writer. Return JSON only:
+{"ideas":[{"title":"Title","concept":"Specific story concept","hook":"Opening hook","conflict":"Main conflict","punchline":"Ending twist"}]}
+Create distinct, clickable, visually clear concepts. No markdown or extra commentary."""
+    user = f"""{get_theme_context(mode, theme, subtheme)}
+USER IDEA: {user_idea or "Invent an original idea based on the selected theme."}
+Create exactly {number_of_ideas} distinct concepts. Each title must lead to a genuinely different story."""
+    data = parse_json_response(call_model(title_model, system, user, 0.95))
+    ideas = data.get("ideas", [])
+    if not ideas:
+        raise ValueError("AI tidak menghasilkan pilihan judul.")
+    return ideas
+
+
+def generate_story(mode, theme, subtheme, selected_title, selected_concept, duration, cta_style, story_model):
+    system = """You are a professional short-form screenplay writer. The selected title is authoritative:
+write a story specifically for it, never substitute another title or reuse an unrelated plot.
+Include a visual hook in the first second, clear conflict, natural concise dialogue,
+escalation, memorable punchline, and context-specific CTA when requested. Respect duration.
+Return JSON only:
+{"title":"Selected title","logline":"Premise","characters":[{"name":"Name","visual_description":"Detailed consistent appearance","personality":"Personality","voice":"Voice"}],"setting":"Setting","hook":"Hook","conflict":"Conflict","story_beats":[{"time":"0-3s","action":"Action","dialogue":"Dialogue","emotion":"Emotion"}],"punchline":"Twist","cta":"CTA or empty string","ending_frame":"Final visual state","continuity_notes":"Continuity details"}"""
+    user = f"""{get_theme_context(mode, theme, subtheme)}
+SELECTED TITLE: {selected_title}
+SELECTED CONCEPT: {selected_concept}
+TOTAL DURATION: {duration} seconds
+CTA STYLE: {cta_style}
+VISUAL STYLE: {get_visual_style(mode)}
+Make the hook instantly visual, dialogue short enough to fit, and ending memorable.
+For videos longer than 10 seconds, distribute events across connected segments.
+Keep character, props, and setting consistent. Use {get_language(mode)}."""
+    story = parse_json_response(call_model(story_model, system, user, 0.85))
+    story["title"] = selected_title
+    return story
+
+
+def split_duration(total_duration):
+    segments, remaining = [], int(total_duration)
+    while remaining > 0:
+        part = min(10, remaining)
+        segments.append(part)
+        remaining -= part
+    return segments
+
+
+def extract_ending_frame(prompt):
+    marker = "ENDING FRAME FOR CONTINUITY:"
+    if marker in prompt:
+        return prompt.split(marker, 1)[1].strip()
+    return "Continue from the exact preceding final frame; preserve character and prop positions, lighting, environment, and camera continuity."
+
+
+def generate_flow_segment(mode, theme, subtheme, story, segment_index, segment_count,
+                          segment_duration, total_duration, previous_ending, flow_model):
+    first, last = segment_index == 1, segment_index == segment_count
+    if first and last:
+        role = "ONLY SEGMENT: tell the complete story from hook through conflict and punchline; finish with CTA if appropriate."
+    elif first:
+        role = """FIRST SEGMENT: open with the strongest visual hook, introduce and escalate the conflict,
+do not resolve everything. End on a precise frame for the next segment: character poses,
+positions, props, background, lighting, and camera framing."""
+    elif last:
+        role = """FINAL SEGMENT: continue directly from the previous final frame; no recap or repeated hook.
+Resolve the conflict and deliver the strongest punchline. Add a natural CTA only if it fits."""
     else:
-        models = {"title": MODELS[title_model_name], "story": MODELS[story_model_name], "flow": MODELS[flow_model_name]}
-        try:
-            with st.spinner("✍️ Membuat cerita dan dialog..."):
-                story = generate_story(api_key, models["story"], mode, theme, subtheme, premise, duration, cta_choice, visual_style)
-            with st.spinner("💡 Membuat pilihan judul..."):
-                titles = generate_titles(api_key, models["title"], story)
-            with st.spinner("🎬 Menyusun prompt Google Flow..."):
-                flow = generate_flow_prompt(api_key, models["flow"], story, mode, duration, visual_style)
-            st.session_state.cadas_result = {
-                "mode": mode, "theme": theme, "subtheme": subtheme, "duration": duration,
-                "visual_style": visual_style, "story": story, "titles": titles, "flow": flow, "models": models
-            }
-            st.success("Konsep video berhasil dibuat!")
-        except Exception as exc:
-            message = str(exc)
-            if message.startswith("JSON_INVALID:"):
-                message = "Respons AI bukan JSON valid setelah percobaan perbaikan. Coba model lain."
-            st.error(f"Gagal membuat konten: {message}")
+        role = """MIDDLE SEGMENT: continue directly from the previous final frame; no recap or repeated hook.
+Escalate the conflict, do not reveal the final punchline, and end with a precise handoff frame."""
+    system = """You are an expert Google Flow prompt engineer. Return ONE ready-to-paste plain-text prompt,
+not JSON and without markdown fences. Prompt exactly the requested duration, maximum 10 seconds.
+Specify character appearance, setting, timed action/dialogue, camera movement, lighting, sound,
+realistic motion, continuity, and ending frame. Dialogue must fit the time."""
+    user = f"""Create segment {segment_index}/{segment_count}.
+SEGMENT DURATION: exactly {segment_duration} seconds. TOTAL VIDEO: {total_duration} seconds.
+FORMAT: vertical 9:16.
+{get_theme_context(mode, theme, subtheme)}
+TITLE: {story.get('title','')}
+PREMISE: {story.get('logline','')}
+CHARACTERS: {json.dumps(story.get('characters', []), ensure_ascii=False)}
+SETTING: {story.get('setting','')}
+HOOK: {story.get('hook','')}
+CONFLICT: {story.get('conflict','')}
+STORY BEATS: {json.dumps(story.get('story_beats', []), ensure_ascii=False)}
+PUNCHLINE: {story.get('punchline','')}
+CTA: {story.get('cta','')}
+VISUAL STYLE: {get_visual_style(mode)}
+SEGMENT ROLE: {role}
+PREVIOUS SEGMENT ENDING: {previous_ending or 'No previous segment; start from the opening hook.'}
+Continuity: same character design, outfit, props, location, time of day, lighting direction, and palette.
+The first frame must logically match the prior segment's last frame. No unexplained new characters/objects.
+No subtitles, captions, watermarks, or text overlays.
+Provide a timeline from 0.0 to {segment_duration}.0 seconds that totals exactly {segment_duration} seconds.
+Include ambience and synchronized sound effects. End with:
+ENDING FRAME FOR CONTINUITY: [describe exact final visual state]."""
+    return call_model(flow_model, system, user, 0.65)
 
-result = st.session_state.cadas_result
-if result:
-    story = result["story"]
-    titles = result["titles"]
-    flow = result["flow"]
-    st.divider()
-    st.header("📦 Hasil Generasi")
-    tab_title, tab_story, tab_flow, tab_broll, tab_json = st.tabs(["📝 Judul", "📖 Cerita & Dialog", "🎬 Google Flow", "🎞️ B-Roll", "📦 Export JSON"])
 
-    with tab_title:
-        selected_title = st.radio("Pilih judul video", titles, key="selected_cadas_title")
-        st.subheader("Judul terpilih")
-        st.write(selected_title)
-        st.download_button("⬇️ Download Judul TXT", selected_title, file_name="cadas_title.txt", mime="text/plain")
+def generate_all_flow_prompts(mode, theme, subtheme, story, total_duration, flow_model, progress_callback=None):
+    durations = split_duration(total_duration)
+    prompts, previous_ending = [], ""
+    for index, segment_duration in enumerate(durations, start=1):
+        if progress_callback:
+            progress_callback(index, len(durations), segment_duration)
+        prompt = generate_flow_segment(
+            mode, theme, subtheme, story, index, len(durations),
+            segment_duration, total_duration, previous_ending, flow_model
+        )
+        prompts.append({
+            "segment": index,
+            "duration": segment_duration,
+            "title": story.get("title", ""),
+            "prompt": prompt,
+        })
+        previous_ending = extract_ending_frame(prompt)
+    return prompts
 
-    with tab_story:
-        for label, key in [("Hook", "hook"), ("Cerita", "story"), ("Karakter", "characters"), ("Setting", "setting"), ("Punchline", "punchline"), ("Ending", "ending"), ("CTA", "cta_note")]:
-            st.subheader(label)
-            st.write(story.get(key, ""))
-        st.subheader("Dialog")
-        dialogue = story.get("dialogue", [])
-        if isinstance(dialogue, list):
-            for item in dialogue:
-                if isinstance(item, dict):
-                    st.markdown(f"**[{item.get('time', '')}] {item.get('speaker', '')}:** {item.get('line', '')}")
+
+def generate_broll(mode, story, flow_model):
+    system = """You are a cinematic video director. Return JSON only:
+{"broll":[{"title":"Shot name","prompt":"Complete prompt"}]}
+Create exactly five distinct supporting shots: establishing, character reaction/detail,
+important prop close-up, escalation/suspense, and punchline reaction. Specify action,
+lighting, camera, environment, continuity, photorealistic CGI. No markdown."""
+    user = f"""TITLE: {story.get('title','')}
+STORY: {json.dumps(story, ensure_ascii=False)}
+STYLE: {get_visual_style(mode)}
+For skeleton stories, each prompt should begin "Place the skeleton character...".
+For Indonesian supernatural stories, use the actual character rather than forcing a skeleton.
+Avoid repeated compositions and preserve continuity."""
+    return parse_json_response(call_model(flow_model, system, user, 0.75)).get("broll", [])
+
+
+# ----------------------------- SIDEBAR -----------------------------
+st.sidebar.title("ðŸ’€ Cadas Resonance Studio")
+st.sidebar.caption("Cinematic AI Story & Google Flow Prompt Studio")
+mode = st.sidebar.selectbox("ðŸŒ Mode", ["ðŸŒŽ Global Skeleton", "ðŸ‡®ðŸ‡© Indonesia Lokal"])
+title_model = st.sidebar.selectbox("ðŸ§  Model Judul / Ide", MODEL_OPTIONS, index=0)
+story_model = st.sidebar.selectbox("âœï¸ Model Cerita", MODEL_OPTIONS, index=1)
+flow_model = st.sidebar.selectbox("ðŸŽ¬ Model Google Flow", MODEL_OPTIONS, index=1)
+
+theme_options = list(LOCAL_THEMES) if mode == "ðŸ‡®ðŸ‡© Indonesia Lokal" else list(GLOBAL_THEMES)
+theme = st.sidebar.selectbox("ðŸŽ­ Tema", theme_options)
+subtheme_options = LOCAL_THEMES[theme] if mode == "ðŸ‡®ðŸ‡© Indonesia Lokal" else GLOBAL_THEMES[theme]
+subtheme = st.sidebar.selectbox("ðŸŽ¯ Subtema", subtheme_options)
+duration = st.sidebar.selectbox("â±ï¸ Durasi Total Video", DURATION_OPTIONS, index=DURATION_OPTIONS.index(20))
+cta_style = st.sidebar.selectbox("ðŸ“¢ Gaya CTA", CTA_OPTIONS)
+st.sidebar.caption(f"{duration} detik = {len(split_duration(duration))} prompt; maksimal 10 detik per prompt.")
+
+# ----------------------------- MAIN UI -----------------------------
+st.title("ðŸ’€ Cadas Resonance Studio")
+st.markdown("Generate cerita, hook, punchline, CTA, dan prompt Google Flow dengan kesinambungan antarsemen.")
+user_idea = st.text_area("ðŸ’¡ Ide awal cerita", placeholder="Contoh: skeleton pergi ke gym tetapi takut melihat tulangnya sendiri." if mode == "ðŸŒŽ Global Skeleton" else "Contoh: pocong menagih utang ke anak kos pada akhir bulan.", height=100)
+
+col1, col2 = st.columns(2)
+with col1:
+    generate_ideas_button = st.button("ðŸŽ² Generate Ideas", type="primary", use_container_width=True)
+with col2:
+    generate_story_button = st.button("âœï¸ Generate Story", use_container_width=True)
+
+if generate_ideas_button:
+    try:
+        with st.spinner("Membuat pilihan ide dan judul..."):
+            ideas = generate_ideas(mode, theme, subtheme, user_idea, title_model)
+        st.session_state.ideas = ideas
+        st.session_state.selected_title = ""
+        st.session_state.story = None
+        st.session_state.flow_prompts = []
+        st.session_state.broll_prompts = []
+        st.session_state.generated_title = ""
+        st.session_state.generated_story_title = ""
+        st.session_state.generated_flow_title = ""
+        st.session_state.generated_duration = None
+        st.success("Ide baru berhasil dibuat.")
+    except Exception as exc:
+        st.error(f"Gagal membuat ide: {exc}")
+
+if st.session_state.ideas:
+    st.subheader("ðŸ“ Pilih Judul Cerita")
+    title_options = [idea.get("title", f"Ide {i+1}") for i, idea in enumerate(st.session_state.ideas)]
+    current = st.session_state.selected_title
+    default_index = title_options.index(current) if current in title_options else 0
+    selected_title = st.selectbox("Judul yang akan digunakan", title_options, index=default_index, key="title_selector")
+    selected_idea = next((idea for idea in st.session_state.ideas if idea.get("title") == selected_title), None)
+    if selected_idea:
+        st.markdown(f"**Konsep:** {selected_idea.get('concept','')}")
+        st.markdown(f"**Hook:** {selected_idea.get('hook','')}")
+        st.markdown(f"**Konflik:** {selected_idea.get('conflict','')}")
+        st.markdown(f"**Punchline:** {selected_idea.get('punchline','')}")
+    if selected_title != st.session_state.selected_title:
+        st.session_state.selected_title = selected_title
+        st.session_state.story = None
+        st.session_state.flow_prompts = []
+        st.session_state.broll_prompts = []
+        st.session_state.generated_story_title = ""
+        st.session_state.generated_flow_title = ""
+        st.session_state.generated_duration = None
+
+if generate_story_button:
+    if not st.session_state.ideas:
+        st.warning("Generate Ideas terlebih dahulu.")
+    elif not st.session_state.selected_title:
+        st.warning("Pilih judul terlebih dahulu.")
+    else:
+        selected_idea = next((idea for idea in st.session_state.ideas if idea.get("title") == st.session_state.selected_title), None)
+        if not selected_idea:
+            st.error("Konsep judul tidak ditemukan. Generate Ideas ulang.")
         else:
-            st.write(dialogue)
-        hashtags = story.get("hashtags", [])
-        st.subheader("Hashtags")
-        st.write(" ".join(map(str, hashtags)) if isinstance(hashtags, list) else hashtags)
-        st.download_button("⬇️ Download Cerita JSON", json.dumps(story, ensure_ascii=False, indent=2), file_name="cadas_story.json", mime="application/json")
+            try:
+                with st.spinner("Menulis cerita berdasarkan judul pilihan..."):
+                    story = generate_story(mode, theme, subtheme, st.session_state.selected_title,
+                                           selected_idea.get("concept", ""), duration, cta_style, story_model)
+                st.session_state.story = story
+                st.session_state.generated_title = st.session_state.selected_title
+                st.session_state.generated_story_title = st.session_state.selected_title
+                st.session_state.flow_prompts = []
+                st.session_state.broll_prompts = []
+                st.session_state.generated_flow_title = ""
+                st.session_state.generated_duration = None
+                st.success("Cerita berhasil dibuat.")
+            except Exception as exc:
+                st.error(f"Gagal membuat cerita: {exc}")
 
-    with tab_flow:
-        flow_prompt = flow.get("flow_prompt", "")
-        st.text_area("Google Flow prompt — siap disalin", value=flow_prompt, height=450)
-        st.download_button("⬇️ Download Google Flow TXT", flow_prompt, file_name="google_flow_prompt.txt", mime="text/plain")
-        st.caption("B-roll, kamera, pencahayaan, dialog, dan timeline diminta terintegrasi dalam satu video.")
+story = st.session_state.story
+if story:
+    if story.get("title") != st.session_state.selected_title or st.session_state.generated_story_title != st.session_state.selected_title:
+        st.warning("Judul berubah. Klik Generate Story kembali sebelum membuat prompt agar cerita tidak tertukar.")
+    else:
+        st.divider()
+        st.header("ðŸ“– Cerita")
+        st.subheader(story.get("title", ""))
+        st.write(story.get("logline", ""))
+        with st.expander("ðŸ‘¥ Karakter", expanded=True):
+            for character in story.get("characters", []):
+                st.markdown(f"### {character.get('name', 'Karakter')}")
+                st.write(f"**Visual:** {character.get('visual_description', '')}")
+                st.write(f"**Kepribadian:** {character.get('personality', '')}")
+                st.write(f"**Suara:** {character.get('voice', '')}")
+        st.markdown(f"**Lokasi:** {story.get('setting', '')}")
+        st.markdown(f"**Hook:** {story.get('hook', '')}")
+        st.markdown(f"**Konflik:** {story.get('conflict', '')}")
+        st.subheader("ðŸŽ­ Alur Cerita")
+        for i, beat in enumerate(story.get("story_beats", []), 1):
+            with st.container(border=True):
+                st.markdown(f"**{i}. {beat.get('time', '')}**")
+                st.write(beat.get("action", ""))
+                st.write(f"ðŸ—£ï¸ {beat.get('dialogue', '')}")
+                st.caption(f"Emosi: {beat.get('emotion', '')}")
+        st.markdown(f"**Punchline:** {story.get('punchline', '')}")
+        st.markdown(f"**CTA:** {story.get('cta', '')}")
 
-    with tab_broll:
-        items = flow.get("broll", [])
-        if isinstance(items, list) and items:
-            for i, item in enumerate(items, 1):
-                if isinstance(item, dict):
-                    with st.expander(f"🎞️ B-Roll {i}"):
-                        st.write("**Waktu:**", item.get("timestamp", ""))
-                        st.write("**Shot:**", item.get("shot", ""))
-                        st.write("**Kamera:**", item.get("camera", ""))
-                        st.write("**Lighting:**", item.get("lighting", ""))
-                        st.write("**Tujuan:**", item.get("purpose", ""))
-        else:
-            st.info("Model tidak menghasilkan daftar B-roll terpisah. Periksa prompt Flow utama.")
-
-    with tab_json:
-        chosen = st.session_state.get("selected_cadas_title", titles[0] if titles else "")
-        export = {
-            "app": "Cadas Resonance Studio", "mode": result["mode"],
-            "theme": result["theme"], "subtheme": result["subtheme"],
-            "duration_seconds": result["duration"], "visual_style": result["visual_style"],
-            "selected_title": chosen, "title_options": titles, "story": story,
-            "google_flow_prompt": flow.get("flow_prompt", ""),
-            "integrated_broll": flow.get("broll", []), "models": result["models"]
-        }
-        json_output = json.dumps(export, ensure_ascii=False, indent=2)
-        st.download_button("📦 DOWNLOAD SEMUA HASIL JSON", json_output, file_name="cadas_resonance_export.json", mime="application/json", use_container_width=True)
-        with st.expander("Lihat JSON"):
-            st.code(json_output, language="json")
-else:
+if story:
     st.divider()
-    st.markdown("""
-    ### 💀 Cara menggunakan
-    1. Pilih Local Indonesia atau Global Skeleton.
-    2. Pilih tema dan subtema.
-    3. Tentukan durasi, visual, dan CTA.
-    4. Masukkan ide cerita jika diperlukan.
-    5. Tekan **GENERATE VIDEO CONCEPT**.
-    6. Periksa judul, cerita, prompt Flow, dan B-roll.
-    7. Download hasil dalam format TXT atau JSON.
-    """)
-
-st.divider()
-st.caption("Cadas Resonance Studio | Local Horror Comedy | Global Skeleton Comedy")
+    st.header("ðŸŽ¬ Google Flow Prompts")
+    current_story_matches = story.get("title") == st.session_state.selected_title and st.session_state.generated_story_title == st.session_state.s
