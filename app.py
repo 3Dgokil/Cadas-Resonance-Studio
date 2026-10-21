@@ -759,7 +759,47 @@ if st.button("🚀 GENERATE VIDEO CONCEPT", type="primary", use_container_width=
                 "flow": MODELS[flow_model_name],
             }
 
-            with st.spinner("✍️ Membuat cerita dan dialog..."):
+                        with st.spinner("✍️ Membuat cerita dan dialog..."):
                 story_data = generate_story(
                     api_key=api_key,
-                    model=selected_models["story"]
+                    model=selected_models["story"],
+                    mode=mode,
+                    theme=theme,
+                    subtheme=subtheme,
+                    premise=premise,
+                    duration=duration,
+                    cta_choice=cta_choice,
+                    visual_style=visual_style,
+                )
+
+            with st.spinner("💡 Membuat pilihan judul..."):
+                titles = generate_titles(
+                    api_key,
+                    selected_models["title"],
+                    story_data,
+                )
+
+            with st.spinner("🎬 Menyusun prompt Google Flow..."):
+                flow_data = generate_flow_prompt(
+                    api_key=api_key,
+                    model=selected_models["flow"],
+                    story_data=story_data,
+                    mode=mode,
+                    duration=duration,
+                    visual_style=visual_style,
+                )
+
+            st.session_state.cadas_result = {
+                "mode": mode,
+                "duration": duration,
+                "visual_style": visual_style,
+                "story": story_data,
+                "titles": titles,
+                "flow": flow_data,
+                "models": selected_models,
+            }
+
+            st.success("Konsep video berhasil dibuat!")
+
+        except Exception as exc:
+            st.error(f"Gagal membuat konten: {exc}")
