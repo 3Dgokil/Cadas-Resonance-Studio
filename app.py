@@ -1,4 +1,4 @@
-# Cadas Resonance Studio â€” app.py
+# Cadas Resonance Studio — app.py
 # Streamlit app for CLICK -> STAY -> RETURN content planning.
 # ClarioHub OpenAI-compatible API integration. Without an API key, the app runs in demo mode.
 # Run: pip install streamlit requests && streamlit run app.py
@@ -22,7 +22,7 @@ CLARIOHUB_BASE_URL = "https://clariohub.id/v1"
 
 st.set_page_config(
     page_title=APP_NAME,
-    page_icon="ðŸ’€",
+    page_icon="💀",
     layout="wide",
     initial_sidebar_state="expanded",
 )
@@ -61,7 +61,7 @@ def extract_last_video_frame(video_bytes, original_name="scene.mp4"):
             return f.read()
 
 
-def render_copy_prompt(prompt, button_label="ðŸ“‹ Salin prompt ke clipboard", height=76, key="copy_prompt"):
+def render_copy_prompt(prompt, button_label="📋 Salin prompt ke clipboard", height=76, key="copy_prompt"):
     """Render a reliable in-page copy control so mobile users don't need to download a TXT file."""
     import base64
     import streamlit.components.v1 as components
@@ -92,8 +92,8 @@ def render_copy_prompt(prompt, button_label="ðŸ“‹ Salin prompt ke clipboar
             fallback.style.position='fixed'; fallback.style.left='-9999px'; fallback.style.opacity='0';
             if (!ok) throw new Error('clipboard unavailable');
           }}
-          status.textContent = 'âœ… Prompt berhasil disalin. Tempel langsung di Google Flow.';
-          btn.textContent = 'âœ… Tersalin!';
+          status.textContent = '✅ Prompt berhasil disalin. Tempel langsung di Google Flow.';
+          btn.textContent = '✅ Tersalin!';
         }} catch (e) {{
           fallback.value = promptText; fallback.style.position='static'; fallback.style.left='auto'; fallback.style.width='100%'; fallback.style.height='100px'; fallback.style.opacity='1';
           fallback.focus(); fallback.select();
@@ -326,7 +326,7 @@ def mode_language(mode):
 
 def realism_rules(mode):
     return """
-VISUAL RULES â€” MANDATORY:
+VISUAL RULES — MANDATORY:
 - Photorealistic live-action look or highly realistic cinematic CGI with believable materials.
 - NOT cartoon, NOT Pixar, NOT anime, NOT illustration, NOT toy-like plastic, NOT flat 2D.
 - Realistic anatomy/materials, detailed textures, physically plausible lighting, cinematic lensing.
@@ -391,7 +391,7 @@ STRICT VARIETY RULES:
 - Each of the {count} ideas must have a DIFFERENT concrete story mechanism and different payoff, not merely a synonym title.
 - Do NOT repeat the same phrase from the subtheme in every title. Use the subtheme as the world/topic, then invent distinct episode events.
 - Titles must be distinct enough that each could produce a visibly different video. Vary the object, obstacle, mistaken assumption, stakes, and twist.
-- Avoid title templates repeated across the list (for example, repeated â€œketika X malah kacauâ€).
+- Avoid title templates repeated across the list (for example, repeated “ketika X malah kacau”).
 - Before returning JSON, internally compare all titles and premises; rewrite any that feel like duplicates.
 Create distinct concepts, not the same premise with different titles. Avoid generic clickbait.
 Each hook must be immediately understandable and visually filmable. Every concept needs a clear payoff. For subscriber-growth goals, optimize for an instant visual stop, escalating curiosity, a memorable payoff, and a natural explicit subscribe/like invitation in the final beat.
@@ -412,4 +412,4 @@ def demo_ideas(cfg, count):
     # Demo concepts must vary the STORY ANGLE, not just rearrange the same subtheme words.
     short_topic = subtheme[:76].strip()
     low_topic = subtheme.lower()
-    ghost_subscribe = any(k in low_topic for k in ["hantu", "pocon
+    ghost_subscribe = any(k in low_topic for k in ["hantu", "pocong", "kuntilanak"
