@@ -743,13 +743,17 @@ st.info(
 if "cadas_result" not in st.session_state:
     st.session_state.cadas_result = None
 
-if st.button("🚀 GENERATE VIDEO CONCEPT", type="primary", use_container_width=True):
+if st.button(
+    "🚀 GENERATE VIDEO CONCEPT",
+    type="primary",
+    use_container_width=True,
+):
     api_key = get_api_key()
 
     if not api_key:
         st.error(
-            "API Key belum ditemukan. Buka Streamlit Cloud → "
-            "Settings → Secrets dan tambahkan CLARIOHUB_API_KEY."
+            "API Key belum ditemukan. Buka Streamlit Cloud > "
+            "Settings > Secrets dan tambahkan CLARIOHUB_API_KEY."
         )
     else:
         try:
@@ -759,7 +763,7 @@ if st.button("🚀 GENERATE VIDEO CONCEPT", type="primary", use_container_width=
                 "flow": MODELS[flow_model_name],
             }
 
-                        with st.spinner("✍️ Membuat cerita dan dialog..."):
+            with st.spinner("✍️ Membuat cerita dan dialog..."):
                 story_data = generate_story(
                     api_key=api_key,
                     model=selected_models["story"],
