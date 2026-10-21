@@ -5,31 +5,131 @@ import re
 import streamlit as st
 from openai import OpenAI
 
-# =========================================================
-# CADAS RESONANCE STUDIO
-# Local Horror Comedy + Global Skeleton Comedy
-# =========================================================
-
 st.set_page_config(
     page_title="Cadas Resonance Studio",
     page_icon="💀",
     layout="wide"
 )
 
-BASE_URL = os.getenv(
-    "CLARIOHUB_BASE_URL",
-    "https://" + "clariohub.id/v1"
-)
+API_BASE = "https://clariohub.id/v1"
 
 MODE_LOCAL = "🇮🇩 Lokal Indonesia"
 MODE_GLOBAL = "🌎 Global Skeleton"
 
-MODEL_OPTIONS = {
+MODELS = {
     "Gemini 3.7 Flash": "clario/gemini-3.7-flash",
     "GPT 5.6 Sol": "clario/gpt-5.6-sol",
     "DeepSeek V4 Pro": "clario/deepseek-v4-pro",
     "DeepSeek V4 Flash": "clario/deepseek-v4-flash",
     "GLM 5.3 Flash": "clario/glm-5.3-flash",
+}
+
+# ======================================================
+# TEMA DAN SUBTEMA GLOBAL
+# ======================================================
+
+GLOBAL_THEMES = {
+    "💀 Skeleton Everyday Life": [
+        "Skeleton at Work",
+        "Skeleton at School",
+        "Skeleton Roommate",
+        "Skeleton Grocery Shopping",
+        "Skeleton Family Problems",
+    ],
+    "😂 Absurd Comedy": [
+        "Unexpected Twist",
+        "Awkward Moments",
+        "Dumb Decisions",
+        "Public Embarrassment",
+        "Overreaction Comedy",
+    ],
+    "👻 Horror Comedy": [
+        "Haunted House",
+        "Ghost Pranks",
+        "Monster Problems",
+        "Scared Skeleton",
+        "Paranormal Roommate",
+    ],
+    "🎮 Gaming Comedy": [
+        "Rage Quit",
+        "Noob Moments",
+        "Gaming Addiction",
+        "Online Game Disaster",
+        "Toxic Teammates",
+    ],
+    "❤️ Relationship Comedy": [
+        "Awkward Dates",
+        "Jealous Skeleton",
+        "Breakup Problems",
+        "Dating App Disaster",
+        "Relationship Misunderstanding",
+    ],
+    "💪 Gym & Fitness": [
+        "Skeleton at the Gym",
+        "Protein Obsession",
+        "Gym Fails",
+        "Fitness Influencer",
+        "Personal Trainer Disaster",
+    ],
+    "💰 Money & Work": [
+        "Broke Skeleton",
+        "Office Problems",
+        "Payday Disaster",
+        "Bad Boss",
+        "Online Shopping Addiction",
+    ],
+    "🍔 Food Comedy": [
+        "Midnight Snacks",
+        "Skeleton Cooking",
+        "Food Addiction",
+        "Restaurant Disaster",
+        "Skeleton at a Fast Food Restaurant",
+    ],
+    "🧪 Science & Sci-Fi": [
+        "Alien Encounter",
+        "Mad Experiment",
+        "Time Travel Disaster",
+        "Robot Problems",
+        "Parallel Universe",
+    ],
+    "🏃 Survival Comedy": [
+        "Zombie Apocalypse",
+        "Bad Survival Skills",
+        "Monster Chase",
+        "Last Person on Earth",
+        "Disaster Preparation",
+    ],
+}
+
+LOCAL_THEMES = {
+    "👻 Horor Komedi": [
+        "Pocong Salah Alamat",
+        "Kuntilanak Lapar",
+        "Genderuwo Cari Kerja",
+        "Hantu Kos",
+        "Setan Takut Manusia",
+    ],
+    "🍜 Kehidupan Sehari-hari": [
+        "Hantu Beli Bakso",
+        "Pocong Numpang Wi-Fi",
+        "Hantu Pinjam Charger",
+        "Setan Pesan Makanan Online",
+        "Hantu Kehabisan Uang",
+    ],
+    "😂 Komedi Tongkrongan": [
+        "Teman Sok Berani",
+        "Prank Gagal",
+        "Utang Warung",
+        "Ronda Tengah Malam",
+        "Salah Paham Kocak",
+    ],
+    "🏚️ Cerita Anak Kos": [
+        "Misteri Kamar Kos",
+        "Hantu Minta Bayar Listrik",
+        "Mie Instan Tengah Malam",
+        "Pintu Kos Misterius",
+        "Penunggu Kamar Mandi",
+    ],
 }
 
 CTA_OPTIONS = [
@@ -41,21 +141,23 @@ CTA_OPTIONS = [
 ]
 
 VISUAL_STYLES = [
-    "Cinematic 3D comedy",
-    "Horror comedy cinematic",
-    "Absurd comedy",
-    "Dark cinematic comedy",
+    "Clean cinematic 3D animation",
+    "Cinematic 3D horror comedy",
+    "Stylized 3D cartoon comedy",
+    "High-detail cinematic 3D",
+    "Absurd cinematic 3D animation",
 ]
 
-# =========================================================
+
+# ======================================================
 # API
-# =========================================================
+# ======================================================
 
 def get_api_key():
     try:
-        secret = st.secrets.get("CLARIOHUB_API_KEY", "")
-        if secret:
-            return str(secret).strip()
+        value = st.secrets.get("CLARIOHUB_API_KEY", "")
+        if value:
+            return str(value).strip()
     except Exception:
         pass
 
@@ -65,7 +167,7 @@ def get_api_key():
 def call_ai(api_key, model, prompt):
     client = OpenAI(
         api_key=api_key,
-        base_url=BASE_URL,
+        base_url=API_BASE,
         timeout=90,
         max_retries=1,
     )
@@ -76,11 +178,12 @@ def call_ai(api_key, model, prompt):
             {
                 "role": "system",
                 "content": (
-                    "You are an expert YouTube Shorts comedy writer "
-                    "and cinematic 3D director. Create original, visual, "
-                    "fast-paced short-form comedy. Follow the requested "
-                    "language, characters, duration, CTA rules, and "
-                    "visual continuity. Return valid JSON only."
+                    "You are an expert short-form comedy writer, "
+                    "cinematic 3D director, and Google Flow prompt "
+                    "engineer. Create original, visual stories with "
+                    "precise timing, integrated B-roll, consistent "
+                    "characters, and strong punchlines. Return valid "
+                    "JSON only."
                 ),
             },
             {
@@ -89,94 +192,71 @@ def call_ai(api_key, model, prompt):
             },
         ],
         temperature=0.9,
-        max_tokens=3000,
+        max_tokens=3500,
     )
 
-    content = response.choices[0].message.content
+    text = response.choices[0].message.content
 
-    if not content:
-        raise RuntimeError("AI tidak memberikan respons.")
+    if not text:
+        raise RuntimeError("AI tidak mengembalikan hasil.")
 
-    content = content.strip()
-    content = re.sub(
+    text = text.strip()
+    text = re.sub(
         r"^```(?:json)?\s*",
         "",
-        content,
+        text,
         flags=re.IGNORECASE,
     )
-    content = re.sub(r"\s*```$", "", content)
+    text = re.sub(r"\s*```$", "", text)
 
     try:
-        data = json.loads(content)
+        data = json.loads(text)
     except json.JSONDecodeError:
-        start = content.find("{")
-        end = content.rfind("}")
+        start = text.find("{")
+        end = text.rfind("}")
 
         if start < 0 or end <= start:
             raise RuntimeError(
                 "Respons AI bukan JSON valid. Coba generate kembali."
             )
 
-        data = json.loads(content[start:end + 1])
+        data = json.loads(text[start:end + 1])
 
     if not isinstance(data, dict):
         raise RuntimeError("Format hasil AI tidak sesuai.")
 
-    required = [
-        "title",
-        "hook",
-        "story",
-        "dialogue",
-        "punchline",
-        "ending",
-        "hashtags",
-    ]
-
-    for field in required:
-        if field not in data:
-            data[field] = ""
-
-    if not isinstance(data["dialogue"], list):
-        data["dialogue"] = []
-
-    data["dialogue"] = [
-        item for item in data["dialogue"]
-        if isinstance(item, dict)
-    ]
-
     return data
 
 
-# =========================================================
-# MODE CONFIGURATION
-# =========================================================
+# ======================================================
+# KONFIGURASI MODE
+# ======================================================
 
-def get_mode_config(mode):
+def get_profile(mode):
     if mode == MODE_LOCAL:
         return {
             "language": "Bahasa Indonesia",
             "region": "Indonesia",
             "characters": (
                 "Pocong, kuntilanak, genderuwo, tuyul, "
-                "hantu kos, zombie lokal, or other Indonesian folklore creatures"
+                "hantu kos, zombie lokal, dan karakter folklore Indonesia"
             ),
             "protagonist": (
-                "Anak kos, pemuda tongkrongan, penjaga warung, "
-                "ojek online, or everyday Indonesian people"
+                "Anak kos, penjaga warung, pedagang bakso, "
+                "pemuda tongkrongan, atau warga lokal"
             ),
-            "settings": (
-                "Kamar kos, gang sempit, warung kopi, "
-                "kontrakan, pos ronda, or Indonesian neighborhood at night"
+            "setting": (
+                "Gang kampung, warung bakso, kamar kos, "
+                "kontrakan, pos ronda, atau pasar malam"
             ),
-            "dialogue_style": (
-                "Natural Indonesian conversational slang. "
-                "Use expressions like 'Woi!', 'Lah kok?', "
-                "'Gila lu!', 'Yaelah!', and 'Kena lu!'."
+            "dialogue": (
+                "Bahasa Indonesia natural dan gaul. "
+                "Gunakan humor percakapan sehari-hari."
             ),
-            "visual_identity": (
-                "High-quality cinematic 3D characters inspired by "
-                "Indonesian horror-comedy. Maintain consistent character "
-                "design, anatomy, clothing, and facial expressions."
+            "identity": (
+                "Stylized cinematic 3D Indonesian horror comedy. "
+                "Karakter ekspresif, detail material berkualitas, "
+                "dan desain karakter konsisten."
             ),
         }
 
@@ -184,336 +264,416 @@ def get_mode_config(mode):
         "language": "Natural conversational English",
         "region": "Global audience",
         "characters": (
-            "A funny 3D skeleton character, zombie, goofy ghost, "
-            "or expressive monster. The main recurring character "
-            "must remain a consistent 3D skeleton."
+            "A recurring expressive 3D skeleton with consistent skull, "
+            "teeth, bone proportions, body structure, and accessories. "
+            "Supporting humans, ghosts, zombies, or monsters may appear."
         ),
         "protagonist": (
-            "A relatable young adult, gamer, roommate, "
-            "or expressive human character"
+            "A funny recurring skeleton character with expressive "
+            "physical comedy and clear visual reactions."
         ),
-        "settings": (
-            "Modern apartment, gaming room, convenience store, "
-            "suburban kitchen, garage, or nighttime city street"
+        "setting": (
+            "Choose a setting that specifically fits the selected "
+            "theme and subtheme."
         ),
-        "dialogue_style": (
-            "Short, natural English internet humor. "
-            "Use punchy reactions such as 'Bro, what?!', "
-            "'No way!', 'You serious?', and 'Caught in 4K!'."
+        "dialogue": (
+            "Natural conversational English, concise internet humor, "
+            "strong comedic timing, and memorable punchlines."
         ),
-        "visual_identity": (
-            "Clean cinematic 3D render. Keep the skeleton's skull shape, "
-            "bone proportions, eye sockets, teeth, body structure, "
-            "and accessories consistent throughout every shot. "
-            "Expressive physical comedy, detailed materials, "
-            "cinematic lighting, and polished 3D animation."
+        "identity": (
+            "Clean cinematic 3D animation, detailed bone materials, "
+            "expressive animation, cinematic lighting, polished render, "
+            "consistent skeleton design, and vertical 9:16 composition."
         ),
     }
 
 
-# =========================================================
-# CTA LOGIC
-# =========================================================
+# ======================================================
+# CTA
+# ======================================================
 
-def get_cta_instruction(cta_choice, language):
-    if cta_choice == "🚫 Tanpa CTA":
-        return """
-        CTA RULE:
-        Do not ask viewers to subscribe, like, comment, or follow.
-        Focus entirely on the story, visual comedy, and punchline.
-        """
+def cta_instruction(choice, language):
+    if choice == "🚫 Tanpa CTA":
+        return (
+            "Do not include any subscribe, like, follow, or comment request. "
+            "Finish with the strongest possible punchline."
+        )
 
-    if cta_choice == "😂 CTA Komedi":
-        return """
-        CTA RULE:
-        Include one short, funny subscribe request that is part
-        of the character's ridiculous situation. Keep it natural.
-        """
+    if choice == "😂 CTA Komedi":
+        return (
+            "Include one short, funny subscribe request that naturally "
+            "fits the character's predicament. Preserve the final joke."
+        )
 
-    if cta_choice == "⏳ CTA Cliffhanger":
-        return """
-        CTA RULE:
-        Build a funny unresolved moment and invite viewers to
-        follow or subscribe for the next part. Do not invent
-        a continuation if the story does not support one.
-        """
+    if choice == "⏳ CTA Cliffhanger":
+        return (
+            "If the story supports it, end with a funny unresolved moment "
+            "and a brief invitation to follow for the next part. "
+            "Do not sacrifice the main punchline."
+        )
 
-    if cta_choice == "🏆 CTA Tantangan":
-        return """
-        CTA RULE:
-        Use a playful challenge related to the joke.
-        Keep it short, lighthearted, and non-coercive.
-        """
+    if choice == "🏆 CTA Tantangan":
+        return (
+            "Include one playful challenge to the audience that relates "
+            "to the joke. Keep it short and lighthearted."
+        )
 
-    return """
-    SMART CTA RULE:
-    Analyze the premise and decide whether a CTA helps the joke.
-    If it fits, use one short, organic subscribe request.
-    If it weakens the hook or punchline, omit it.
-    Never force a CTA into every scene.
+    return (
+        "SMART CTA: Analyze the story first. Add one brief organic CTA "
+        "only when it improves the comedy. Otherwise omit it. "
+        "Never force a CTA into the opening hook or ruin the punchline."
+    )
+
+
+# ======================================================
+# PEMBAGIAN SHOT
+# ======================================================
+
+def shot_schedule(duration):
     """
+    Membuat shot schedule sesuai durasi target.
+    Semua rentang menggunakan detik agar tidak ada timestamp
+    yang melebihi durasi target.
+    """
+    duration = int(duration)
+
+    if duration <= 5:
+        proportions = [0.20, 0.22, 0.18, 0.20, 0.20]
+    elif duration <= 8:
+        proportions = [0.16, 0.20, 0.18, 0.22, 0.24]
+    elif duration <= 10:
+        proportions = [0.15, 0.19, 0.18, 0.22, 0.26]
+    else:
+        proportions = [0.12, 0.18, 0.20, 0.22, 0.28]
+
+    lengths = [
+        max(1, round(duration * p))
+        for p in proportions
+    ]
+
+    # Pastikan jumlah durasi tepat sama dengan target.
+    lengths[-1] += duration - sum(lengths)
+
+    if lengths[-1] < 1:
+        deficit = 1 - lengths[-1]
+        lengths[-1] = 1
+        lengths[0] -= deficit
+
+    shots = []
+    current = 0
+
+    labels = [
+        "HOOK / EXTREME CLOSE-UP",
+        "REACTION / MEDIUM SHOT",
+        "B-ROLL / DETAIL INSERT",
+        "CONFLICT ESCALATION",
+        "PUNCHLINE / FINAL REACTION",
+    ]
+
+    for label, length in zip(labels, lengths):
+        start = current
+        end = current + length
+
+        shots.append({
+            "start": start,
+            "end": end,
+            "label": label,
+        })
+
+        current = end
+
+    return shots
 
 
-# =========================================================
-# PROMPT BUILDER
-# =========================================================
+def format_schedule(shots):
+    return "\n".join(
+        f"[{s['start']:02d}s-{s['end']:02d}s] {s['label']}"
+        for s in shots
+    )
 
-def build_generation_prompt(
+
+# ======================================================
+# GENERATOR PROMPT
+# ======================================================
+
+def build_prompt(
     mode,
-    config,
+    profile,
+    theme,
+    subtheme,
     premise,
     duration,
     style,
     cta_choice,
     history,
 ):
+    schedule = shot_schedule(duration)
+    schedule_text = format_schedule(schedule)
+
     if mode == MODE_GLOBAL:
-        character_rule = """
-        SKELETON CONSISTENCY:
-        - The main skeleton is the recurring protagonist.
-        - Preserve the exact same skull, teeth, bone proportions,
-          body structure, and accessories in every shot.
-        - Do not randomly change character design.
-        - Use clean cinematic 3D rendering, never live-action footage.
-        """
+        character_rules = """
+SKELETON CONTINUITY:
+- The same main skeleton must appear throughout the video.
+- Preserve skull shape, teeth, eye sockets, bone proportions,
+  body structure, accessories, and color palette.
+- Do not randomly redesign the skeleton between shots.
+- Supporting characters must remain consistent too.
+"""
     else:
-        character_rule = """
-        LOCAL CHARACTER CONSISTENCY:
-        - Maintain consistent character appearance in every shot.
-        - Use recognizable Indonesian locations and cultural details.
-        - Horror elements should support comedy, not overpower it.
-        """
-
-    cta_rule = get_cta_instruction(cta_choice, config["language"])
-
-    history_text = json.dumps(history[-10:], ensure_ascii=False)
+        character_rules = """
+LOCAL CHARACTER CONTINUITY:
+- Maintain the same face, hair, clothing, and body proportions
+  for every returning character.
+- Respect Indonesian setting and cultural details.
+- Horror is a setup for comedy, not a reason to abandon the punchline.
+"""
 
     premise_text = premise.strip() or (
-        "Invent a fresh, visually funny confrontation with an "
-        "unexpected twist. Avoid overused jokes."
+        "Invent an original, visually funny situation that fits "
+        "the selected theme and subtheme."
     )
 
     return f"""
-Create ONE original YouTube Shorts comedy concept.
+Create ONE original YouTube Shorts comedy story.
 
-OUTPUT LANGUAGE: {config["language"]}
-TARGET: {config["region"]}
-DURATION: {duration} seconds
+MODE: {mode}
+TARGET REGION: {profile['region']}
+OUTPUT LANGUAGE: {profile['language']}
+DURATION: EXACTLY {duration} SECONDS TARGET
+ASPECT RATIO: Vertical 9:16
 VISUAL STYLE: {style}
-FORMAT: Vertical 9:16
+
+THEME:
+{theme}
+
+SUBTHEME:
+{subtheme}
 
 USER PREMISE:
 {premise_text}
 
 CHARACTERS:
-{config["characters"]}
+{profile['characters']}
 
-PROTAGONIST:
-{config["protagonist"]}
+MAIN PROTAGONIST:
+{profile['protagonist']}
 
 SETTING:
-{config["settings"]}
+{profile['setting']}
 
 DIALOGUE STYLE:
-{config["dialogue_style"]}
+{profile['dialogue']}
 
 VISUAL IDENTITY:
-{config["visual_identity"]}
+{profile['identity']}
 
-{character_rule}
+{character_rules}
 
-CTA:
-{cta_rule}
+CTA RULE:
+{cta_instruction(cta_choice, profile['language'])}
 
-ANTI-REPETITION:
-Recently generated titles:
-{history_text}
+RECENT TITLES — AVOID REPETITION:
+{json.dumps(history[-10:], ensure_ascii=False)}
 
-Avoid repeating the same title, premise, punchline, character behavior,
-or joke structure from the recent history.
+STORY RULES:
+1. Establish a clear visual hook immediately.
+2. Make the premise understandable without exposition.
+3. Use short, speakable dialogue that fits the duration.
+4. Escalate the absurdity in a logical way.
+5. Make the punchline surprising and specific to the selected subtheme.
+6. Do not end with generic laughter instead of a real joke.
+7. Do not let the CTA replace the punchline.
+8. Keep all dialogue in the selected output language.
+9. Maintain consistent characters, props, geography, and lighting.
+10. Avoid excessive dialogue that cannot fit the target duration.
 
-STORY REQUIREMENTS:
-1. Start with a strong visual or verbal hook in the first second.
-2. Introduce a clear, easy-to-understand conflict.
-3. Escalate the absurdity quickly.
-4. Make the dialogue short enough for the requested duration.
-5. End with a surprising visual gag, roast, or ironic punchline.
-6. Keep character actions physically possible within the scene.
-7. Use no unnecessary exposition.
-8. Make the concept understandable without subtitles.
-9. Do not let a CTA ruin the final punchline.
-10. Avoid generic endings such as simply laughing without a joke.
+MANDATORY TIMELINE:
+Use these shot intervals as the production structure:
+{schedule_text}
 
-SHOT STRUCTURE:
-Divide the short into clear timed beats that fit the requested duration.
+INTEGRATED B-ROLL REQUIREMENTS:
+B-roll MUST be embedded in the main flow_prompt at the relevant timestamps.
+Do not output B-roll only as a detached list.
 
-Include:
-- A strong opening close-up or striking visual.
-- A medium shot showing the conflict.
-- A reaction shot or visual cutaway.
-- A close-up for the important reveal.
-- A final punchline shot.
+Include appropriate examples such as:
+- Extreme close-up of facial expression.
+- Close-up of hands, props, or important story objects.
+- Reaction shot of the other character.
+- Over-the-shoulder shot.
+- Brief environmental cutaway.
+- Final close-up or reaction freeze.
 
-B-ROLL INTEGRATION:
-Create 3 to 5 brief B-roll inserts inside the same continuous video.
-Use close-ups, hand details, object inserts, reaction shots,
-over-the-shoulder shots, and short environmental cutaways.
-B-roll must support the story and preserve character continuity.
-Do not create unrelated scenes or a separate video.
-Describe the lighting and camera angle for each important shot.
+Choose only B-roll shots that strengthen this particular joke.
+Do not interrupt dialogue or add unrelated scenes.
+Use quick, readable cuts with continuous story geography.
 
-TIMING:
-Every dialogue item must have a timestamp that fits within
-the requested duration. Do not use a fixed 9-second timeline
-when a different duration is requested.
+EVERY SHOT MUST SPECIFY:
+- Timestamp.
+- Character action and expression.
+- Camera angle and movement.
+- Lighting and atmosphere.
+- Dialogue when necessary.
+- Relevant sound effect when appropriate.
+- How the shot connects to the next shot.
 
-Return valid JSON only using this structure:
+AUDIO:
+Specify dialogue delivery, ambience, and relevant sound effects.
+Avoid excessive sound effects that obscure dialogue.
+
+GOOGLE FLOW PROMPT:
+The flow_prompt must be a complete ready-to-copy production prompt.
+Include the character descriptions, setting, complete timed shot list,
+integrated B-roll, lighting, camera movements, dialogue, sound effects,
+transitions, and ending.
+
+Do not ask Google Flow to generate unrelated separate videos.
+All shots belong to ONE coherent vertical video.
+
+Return valid JSON only:
 {{
   "title": "Short memorable title",
   "hook": "Opening hook",
-  "story": "Brief premise and story progression",
+  "story": "Short story premise",
   "dialogue": [
     {{
-      "time": "00:00-00:01",
+      "time": "00:00-00:02",
       "speaker": "CHARACTER",
       "line": "Dialogue"
     }}
   ],
-  "punchline": "The central comedic payoff",
-  "ending": "Final visual reaction or twist",
-  "cta_note": "CTA used or reason for omitting it",
+  "punchline": "Main comedic payoff",
+  "ending": "Final visual reaction",
+  "cta_note": "CTA used or reason for omission",
   "hashtags": "#Shorts #Comedy",
-  "flow_prompt": "Complete production-ready Google Flow prompt",
+  "flow_prompt": "Complete Google Flow production prompt",
   "broll": [
     {{
-      "shot": "B-roll description",
+      "shot": "Specific insert shot",
       "camera": "Camera angle and movement",
       "lighting": "Lighting description"
     }}
   ]
 }}
-
-The flow_prompt must be a complete, ready-to-copy video prompt.
-Include character design, setting, timed shots, dialogue, camera angles,
-lighting, integrated B-roll, sound effects, transitions, and ending.
-Maintain clean cinematic 3D quality and vertical 9:16 composition.
-Do not include explanations outside the JSON.
 """
 
 
-# =========================================================
+# ======================================================
 # FALLBACK
-# =========================================================
+# ======================================================
 
-def fallback_idea(mode, config, premise, duration, cta_choice):
-    if mode == MODE_LOCAL:
-        character = "POCОNG"
-        other = "ANAK KOS"
-        setting = "a dim Indonesian boarding-house room at night"
-        hook = "WOI! BALIK SINI!"
-        line2 = "Lah, lu ngapain di kamar gue?"
-        line3 = "Gue cuma mau pinjam charger!"
-        punchline = "Charger lu ada di leher lu, Bang!"
-        title = "Pocong Pinjam Charger"
-        tags = "#Shorts #HororKomedi #Pocong"
-    else:
-        character = "SKELETON"
-        other = "GAMER"
-        setting = "a modern gaming room at night"
-        hook = "BRO! WAIT!"
-        line2 = "Dude, why are you in my room?"
-        line3 = "I need a charger for my bones!"
-        punchline = "Your charger is plugged into your own rib cage!"
-        title = "The Skeleton Needs a Charger"
-        tags = "#Shorts #SkeletonComedy #3DComedy"
-
-    if premise.strip():
-        story = premise.strip()
-    else:
+def fallback_idea(mode, theme, subtheme, premise, duration, cta_choice):
+    if mode == MODE_GLOBAL:
+        title = "The Skeleton's Worst Day at Work"
+        hook = "BRO, THIS IS NOT MY JOB!"
         story = (
-            f"{character} enters {setting} to borrow a phone charger, "
-            "but the request becomes absurd."
+            premise.strip()
+            or f"A skeleton faces an absurd situation: {subtheme}."
         )
-
-    dialogue = [
-        {
-            "time": "00:00-00:01",
-            "speaker": character,
-            "line": hook,
-        },
-        {
-            "time": "00:01-00:03",
-            "speaker": other,
-            "line": line2,
-        },
-        {
-            "time": "00:03-00:06",
-            "speaker": character,
-            "line": line3,
-        },
-        {
-            "time": "00:06-00:08",
-            "speaker": other,
-            "line": punchline,
-        },
-    ]
-
-    if cta_choice == "🚫 Tanpa CTA":
-        cta_note = "Tanpa CTA; fokus pada punchline."
-    elif cta_choice == "⏳ CTA Cliffhanger":
-        cta_note = (
-            "CTA cliffhanger belum ditambahkan otomatis oleh fallback; "
-            "edit prompt atau generate ulang saat API tersedia."
-        )
-    elif cta_choice == "🧠 Smart CTA Otomatis":
-        cta_note = "Fallback: CTA dilewati agar punchline tetap kuat."
+        dialogue = [
+            {
+                "time": "00:00-00:02",
+                "speaker": "SKELETON",
+                "line": "Bro, this is NOT my job!",
+            },
+            {
+                "time": "00:02-00:04",
+                "speaker": "HUMAN",
+                "line": "You're literally the only one qualified!",
+            },
+            {
+                "time": "00:04-00:06",
+                "speaker": "SKELETON",
+                "line": "I don't even have a backbone!",
+            },
+            {
+                "time": "00:06-00:08",
+                "speaker": "HUMAN",
+                "line": "Finally, an honest employee!",
+            },
+        ]
+        punchline = "The skeleton removes one rib and uses it as a resignation letter."
+        hashtags = "#Shorts #SkeletonComedy #3DComedy"
+        setting = "A modern office with fluorescent lights."
     else:
-        cta_note = (
-            "Fallback: tambahkan CTA secara manual jika cocok "
-            "dengan ritme cerita."
+        title = "Pocong Salah Pesan Bakso"
+        hook = "WOI, BANG!"
+        story = (
+            premise.strip()
+            or f"Pocong causes a ridiculous problem: {subtheme}."
         )
+        dialogue = [
+            {
+                "time": "00:00-00:02",
+                "speaker": "POCONG",
+                "line": "Bang, bakso satu!",
+            },
+            {
+                "time": "00:02-00:04",
+                "speaker": "PEDAGANG",
+                "line": "Lah, duitnya mana?",
+            },
+            {
+                "time": "00:04-00:06",
+                "speaker": "POCONG",
+                "line": "Bayarnya pakai doa, Bang!",
+            },
+            {
+                "time": "00:06-00:08",
+                "speaker": "PEDAGANG",
+                "line": "Kalau gitu, doain warung gue rame!",
+            },
+        ]
+        punchline = "The pocong hops away while the vendor chases it with a bowl."
+        hashtags = "#Shorts #HororKomedi #Pocong"
+        setting = "A foggy Indonesian bakso cart at night."
+
+    schedule = shot_schedule(duration)
 
     flow_prompt = f"""
-Create one vertical 9:16 cinematic 3D comedy short, approximately
-{duration} seconds long.
+Create ONE coherent cinematic 3D comedy short, vertical 9:16,
+target duration {duration} seconds.
 
-SETTING:
-{setting}
+THEME: {theme}
+SUBTHEME: {subtheme}
+STORY: {story}
+SETTING: {setting}
 
-CHARACTERS:
-- {character}: expressive, consistent design.
-- {other}: expressive comedic reactions.
-
-STORY:
-{story}
+CHARACTER CONTINUITY:
+Keep character design, proportions, clothing, props, and lighting
+consistent from beginning to end.
 
 TIMED SHOTS:
-0-1s: Extreme close-up. {character} suddenly faces the camera
-and says: "{hook}". Dramatic key light and quick camera push-in.
+{format_schedule(schedule)}
 
-1-3s: Medium shot. {other} reacts with confusion:
-"{line2}". Slight handheld-style camera movement.
+SHOT DETAILS:
+Opening: Start with an expressive extreme close-up and a quick camera push-in.
+Reaction: Cut to the other character's immediate reaction.
+B-roll insert: Close-up of an important prop or moving hands, followed by
+a quick reaction cutaway. Keep this insert connected to the joke.
+Escalation: Medium shot showing the problem becoming more ridiculous.
+Punchline: Finish with a clear visual gag and a final reaction close-up.
 
-3-5s: Insert B-roll close-up of the character's hands and the charger.
-Use detailed materials, shallow depth of field, and a quick cutaway.
+DIALOGUE:
+{json.dumps(dialogue, ensure_ascii=False)}
 
-5-7s: Reaction close-up. {character} says: "{line3}".
-Use contrasting rim light and a comedic pause.
-
-7-{duration}s: Two-shot for the reveal. {other} delivers:
-"{punchline}". Finish with a visual reaction and brief freeze.
-
-VISUAL STYLE:
-Clean cinematic 3D render, vertical 9:16 composition,
-expressive character animation, consistent design, dramatic lighting,
-polished materials, readable silhouettes, precise comedic timing.
-
-AUDIO:
-Natural dialogue, subtle room ambience, one soft comedic sound effect
-at the reveal. No music that overwhelms the dialogue.
+PUNCHLINE:
+{punchline}
 
 CTA:
-{cta_note}
+{cta_instruction(cta_choice, 'English' if mode == MODE_GLOBAL else 'Bahasa Indonesia')}
+
+VISUALS:
+Clean cinematic 3D rendering, vertical 9:16, detailed materials,
+expressive animation, controlled motion blur, cinematic lighting,
+clear silhouettes, consistent character design, readable actions.
+
+AUDIO:
+Use natural dialogue, environmental ambience, and one or two relevant
+comedic sound effects. Avoid sound that overwhelms the dialogue.
+
+B-ROLL:
+Integrate close-ups, object inserts, and reaction shots directly
+between the main shots. Do not create separate unrelated videos.
 """
 
     return {
@@ -522,310 +682,29 @@ CTA:
         "story": story,
         "dialogue": dialogue,
         "punchline": punchline,
-        "ending": "The characters react awkwardly after the reveal.",
-        "cta_note": cta_note,
-        "hashtags": tags,
+        "ending": "End with a brief visual reaction.",
+        "cta_note": (
+            "Fallback example; revise the CTA manually if needed."
+        ),
+        "hashtags": hashtags,
         "flow_prompt": flow_prompt,
         "broll": [
             {
-                "shot": "Close-up of the charger and character hands",
-                "camera": "Macro insert, shallow depth of field",
-                "lighting": "Soft cinematic key light",
+                "shot": "Close-up of an important prop",
+                "camera": "Macro insert with shallow depth of field",
+                "lighting": "Cinematic key light",
             },
             {
-                "shot": "Confused reaction from the protagonist",
+                "shot": "Character reaction",
                 "camera": "Tight reaction close-up",
                 "lighting": "Contrasting rim light",
-            },
-            {
-                "shot": "Two-character reveal",
-                "camera": "Medium two-shot with quick push-in",
-                "lighting": "Dramatic cinematic lighting",
             },
         ],
     }
 
 
-# =========================================================
+# ======================================================
 # SIDEBAR
-# =========================================================
+# ======================================================
 
-st.title("💀 Cadas Resonance Studio")
-st.caption(
-    "Satu studio untuk horor-komedi Indonesia dan skeleton comedy global."
-)
-
-with st.sidebar:
-    st.header("⚙️ Pengaturan")
-
-    mode = st.radio(
-        "Pilih mode konten",
-        [MODE_LOCAL, MODE_GLOBAL],
-    )
-
-    model_label = st.selectbox(
-        "Model AI",
-        list(MODEL_OPTIONS.keys()),
-    )
-    model = MODEL_OPTIONS[model_label]
-
-    cta_choice = st.selectbox(
-        "Strategi CTA",
-        CTA_OPTIONS,
-    )
-
-    style = st.selectbox(
-        "Gaya visual",
-        VISUAL_STYLES,
-    )
-
-    duration = st.selectbox(
-        "Durasi target",
-        [5, 8, 10, 15, 20],
-        index=2,
-    )
-
-    st.caption(
-        "Durasi hasil akhir tetap bergantung pada kemampuan "
-        "model video yang digunakan."
-    )
-
-    key = get_api_key()
-
-    if not key:
-        key = st.text_input(
-            "ClarioHub API Key",
-            type="password",
-        ).strip()
-
-    if key:
-        st.success("API key tersedia")
-    else:
-        st.warning("Masukkan API key untuk menggunakan AI.")
-
-
-# =========================================================
-# MAIN INPUT
-# =========================================================
-
-config = get_mode_config(mode)
-
-with st.expander("📋 Profil mode aktif", expanded=False):
-    st.write("**Bahasa:**", config["language"])
-    st.write("**Target:**", config["region"])
-    st.write("**Karakter:**", config["characters"])
-    st.write("**Lokasi:**", config["settings"])
-
-st.subheader("📝 Ide Cerita")
-
-premise = st.text_area(
-    "Topik atau situasi (opsional)",
-    placeholder=(
-        "Contoh lokal: Pocong nagih utang Wi-Fi di kos.\n"
-        "Contoh global: A skeleton tries to impress a gym trainer."
-    ),
-    height=100,
-)
-
-if "idea" not in st.session_state:
-    st.session_state.idea = None
-
-if "history_titles" not in st.session_state:
-    st.session_state.history_titles = []
-
-if st.button(
-    "🔥 GENERATE KONTEN",
-    type="primary",
-    use_container_width=True,
-):
-    if not key:
-        st.error(
-            "API key belum tersedia. Masukkan API key di sidebar "
-            "atau atur CLARIOHUB_API_KEY di Secrets."
-        )
-    else:
-        prompt = build_generation_prompt(
-            mode=mode,
-            config=config,
-            premise=premise,
-            duration=duration,
-            style=style,
-            cta_choice=cta_choice,
-            history=st.session_state.history_titles,
-        )
-
-        with st.spinner("Sedang merancang cerita dan prompt video..."):
-            try:
-                result = call_ai(key, model, prompt)
-
-                # Fallback if the model omits the video prompt.
-                if not result.get("flow_prompt"):
-                    fallback = fallback_idea(
-                        mode,
-                        config,
-                        premise,
-                        duration,
-                        cta_choice,
-                    )
-                    result["flow_prompt"] = fallback["flow_prompt"]
-
-                result["mode"] = mode
-                result["duration_seconds"] = duration
-                result["visual_style"] = style
-                result["cta_choice"] = cta_choice
-
-                st.session_state.idea = result
-
-                title = result.get("title", "").strip()
-                if title:
-                    st.session_state.history_titles.append(title)
-                    st.session_state.history_titles = (
-                        st.session_state.history_titles[-10:]
-                    )
-
-            except Exception as exc:
-                st.error(f"Generate API gagal: {exc}")
-
-                st.warning(
-                    "Menampilkan ide cadangan lokal. "
-                    "Ide ini tidak dihasilkan oleh API."
-                )
-
-                fallback = fallback_idea(
-                    mode,
-                    config,
-                    premise,
-                    duration,
-                    cta_choice,
-                )
-
-                fallback["mode"] = mode
-                fallback["duration_seconds"] = duration
-                fallback["visual_style"] = style
-                fallback["cta_choice"] = cta_choice
-
-                st.session_state.idea = fallback
-
-
-# =========================================================
-# RESULTS
-# =========================================================
-
-result = st.session_state.idea
-
-if result:
-    st.divider()
-
-    st.header(result.get("title", "Hasil Shorts"))
-
-    st.caption(
-        f"Mode: {result.get('mode', mode)} · "
-        f"Durasi target: {result.get('duration_seconds', duration)} detik · "
-        f"CTA: {result.get('cta_choice', cta_choice)}"
-    )
-
-    st.code(
-        result.get("hashtags", "#Shorts #Comedy"),
-        language=None,
-    )
-
-    tab_story, tab_flow, tab_broll, tab_json = st.tabs(
-        [
-            "📖 Struktur Cerita",
-            "🎬 Prompt Google Flow",
-            "🎥 B-Roll",
-            "📦 Ekspor JSON",
-        ]
-    )
-
-    with tab_story:
-        st.subheader("🪝 Hook")
-        st.write(result.get("hook", ""))
-
-        st.subheader("📚 Premis")
-        st.write(result.get("story", ""))
-
-        st.subheader("🗣️ Dialog")
-
-        for item in result.get("dialogue", []):
-            st.markdown(
-                f"**{item.get('time', '')} — "
-                f"{item.get('speaker', 'CHARACTER')}**"
-            )
-            st.write(item.get("line", ""))
-
-        st.subheader("💥 Punchline")
-        st.write(result.get("punchline", ""))
-
-        st.subheader("🎭 Ending")
-        st.write(result.get("ending", ""))
-
-        st.subheader("🎯 Catatan CTA")
-        st.write(result.get("cta_note", ""))
-
-    with tab_flow:
-        flow_prompt = result.get("flow_prompt", "")
-
-        st.text_area(
-            "Prompt siap salin ke Google Flow",
-            value=flow_prompt,
-            height=500,
-            key="flow_output",
-        )
-
-        st.download_button(
-            "⬇️ Unduh Prompt .txt",
-            data=flow_prompt,
-            file_name="cadas_resonance_flow_prompt.txt",
-            mime="text/plain",
-            use_container_width=True,
-        )
-
-    with tab_broll:
-        broll = result.get("broll", [])
-
-        if not broll:
-            st.info(
-                "B-roll utama dijelaskan di dalam prompt Google Flow."
-            )
-
-        for index, shot in enumerate(broll, start=1):
-            with st.expander(
-                f"🎥 B-Roll {index}: {shot.get('shot', 'Shot')}",
-                expanded=True,
-            ):
-                st.write("**Kamera:**", shot.get("camera", ""))
-                st.write("**Lighting:**", shot.get("lighting", ""))
-
-        st.caption(
-            "B-roll merupakan bagian dari satu prompt video, "
-            "bukan video terpisah."
-        )
-
-    with tab_json:
-        export_data = json.dumps(
-            result,
-            ensure_ascii=False,
-            indent=2,
-        )
-
-        st.download_button(
-            "⬇️ Unduh Paket JSON",
-            data=export_data,
-            file_name="cadas_resonance_package.json",
-            mime="application/json",
-            use_container_width=True,
-        )
-
-        st.json(result)
-
-    if st.button("🗑️ Hapus Hasil dari Layar"):
-        st.session_state.idea = None
-        st.rerun()
-
-st.divider()
-
-st.caption(
-    "Cadas Resonance Studio · Gunakan karakter dan gaya visual "
-    "yang konsisten untuk membangun identitas channel."
-)
+st.title("💀 Cadas Resonance S
