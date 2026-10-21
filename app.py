@@ -707,4 +707,5 @@ between the main shots. Do not create separate unrelated videos.
 # SIDEBAR
 # ======================================================
 
-st.title("💀 Cadas Resonance S
+st.title("💀 Cadas Resonance Studio")
+st.caption("Local Indonesian horror comedy + global cinematic skeleton comedy.")
